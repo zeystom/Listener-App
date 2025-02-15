@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "882727095379",
+    "project_id": "listener-d881d",
+    "storage_bucket": "listener-d881d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:882727095379:android:59e612519de46656a64aa6",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsbIKtTJnkvUO97rddCJ1HjtIkco_JW0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

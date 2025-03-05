@@ -1,10 +1,11 @@
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
+
     tools:context=".MainActivity">
 
     <!-- Заголовок приложения -->
@@ -14,20 +15,20 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
         android:layout_marginBottom="16dp"
-    android:letterSpacing="0.08"
-    android:text="Listener"
-        android:textColor="#4CAF50"
+        android:letterSpacing="0.08"
+        android:text="Listener"
+        android:textColor="?attr/colorPrimary"
         android:textSize="36sp"
-    android:textStyle="bold"
-    android:shadowColor="#33000000"
-    android:shadowDx="2"
-    android:shadowDy="2"
-    android:shadowRadius="4"
-    app:layout_constraintTop_toTopOf="parent"
-    app:layout_constraintBottom_toTopOf="@+id/usernameInputLayout"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintVertical_chainStyle="packed" />
+        android:textStyle="bold"
+        android:shadowColor="#33000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="4"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/usernameInputLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
 
     <!-- Поле для ввода логина с использованием TextInputLayout -->
     <com.google.android.material.textfield.TextInputLayout
@@ -38,7 +39,7 @@
         android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="32dp"
-        android:hint="Username"
+        android:hint="Email"
         app:boxCornerRadiusBottomEnd="8dp"
         app:boxCornerRadiusBottomStart="8dp"
         app:boxCornerRadiusTopEnd="8dp"
@@ -91,8 +92,8 @@
         android:layout_marginTop="20dp"
         android:layout_marginEnd="32dp"
         android:text="Sign In"
-        android:textColor="#FFFFFF"
-        app:backgroundTint="#4CAF50"
+        android:textColor="?attr/colorOnPrimary"
+        app:backgroundTint="?attr/colorPrimary"
         app:cornerRadius="8dp"
         app:layout_constraintBottom_toTopOf="@+id/register_button"
         app:layout_constraintEnd_toEndOf="parent"
@@ -110,7 +111,7 @@
         android:layout_marginEnd="32dp"
         android:layout_marginBottom="32dp"
         android:text="SIGN UP"
-        android:textColor="#4CAF50"
+        android:textColor="?attr/colorPrimary"
         app:cornerRadius="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -119,14 +120,14 @@
 
     <TextView
         android:id="@+id/forgottenPass"
-        android:layout_width="182dp"
-        android:layout_height="63dp"
+        android:layout_width="159dp"
+        android:layout_height="62dp"
         android:layout_marginTop="50dp"
         android:clickable="true"
         android:focusable="true"
         android:text="Forgot your password?"
-        android:textColor="#4CAF50"
-        android:textSize="18sp"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="15sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/register_button" />

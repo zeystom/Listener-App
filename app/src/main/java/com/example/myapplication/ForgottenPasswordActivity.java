@@ -39,14 +39,13 @@ public class ForgottenPasswordActivity extends AppCompatActivity {
     }
     void restorePassword(String email) {
         FirebaseAuth auth = FirebaseAuth.getInstance();
-        auth.setLanguageCode("ru");
         auth.sendPasswordResetEmail(email)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
                         if (task.isSuccessful()) {
                             Log.d("TAG", "Email sent.");
-                            Toast.makeText(ForgottenPasswordActivity.this, "Сообщение о смене пароля успешно отправлено", Toast.LENGTH_LONG).show();
+                            Toast.makeText(ForgottenPasswordActivity.this, "We've sent a recovery email to your email", Toast.LENGTH_LONG).show();
                         } else
                             Toast.makeText(ForgottenPasswordActivity.this, task.getException().getMessage(),
                                     Toast.LENGTH_SHORT).show();

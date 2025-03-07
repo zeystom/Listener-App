@@ -18,7 +18,7 @@
             android:id="@+id/companionImage"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/loupe"
+            android:src="@drawable/profile_user"
             android:scaleType="centerCrop"
             android:layout_marginEnd="8dp" />
 

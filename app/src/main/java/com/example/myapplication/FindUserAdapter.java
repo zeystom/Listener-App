@@ -55,7 +55,6 @@ public class FindUserAdapter extends RecyclerView.Adapter<FindUserAdapter.FindUs
         }
     }
 
-    // Интерфейс для обработки кликов
     public interface OnUserClickListener {
         void onUserClick(FindUser user);
     }

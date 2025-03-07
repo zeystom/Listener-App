@@ -15,15 +15,18 @@ import androidx.core.view.GravityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.databinding.ActivityGeneralBinding;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
-import com.example.myapplication.databinding.ActivityGeneralBinding;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class GeneralActivity extends AppCompatActivity {
 
@@ -54,47 +57,111 @@ public class GeneralActivity extends AppCompatActivity {
         binding.drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        binding.navView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                int id = item.getItemId();
-                if (id == R.id.nav_profile) {
-                    // Handle "Profile" click
-                } else if (id == R.id.nav_settings) {
-                    // Handle "Settings" click
-                } else if (id == R.id.nav_sign_out) {
-                    mAuth.signOut();
-                    startActivity(new Intent(GeneralActivity.this, MainActivity.class));
-                    finish();
-                }
-                binding.drawerLayout.closeDrawer(GravityCompat.START);
-                return true;
+        binding.navView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (false) {
+                // Handle "Profile" click
+            } else if (false) {
+                // Handle "Settings" click
+            } else if (id == R.id.nav_sign_out) {
+                mAuth.signOut();
+                startActivity(new Intent(GeneralActivity.this, MainActivity.class));
+                finish();
             }
+            binding.drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
         });
 
-        // Set up RecyclerView for chats
+        // Setup chats RecyclerView
         recyclerViewChats = binding.recyclerViewChats;
-        recyclerViewFindUsers = binding.listViewGen;
-
         recyclerViewChats.setLayoutManager(new LinearLayoutManager(this));
         chatList = new ArrayList<>();
-        chatList.add(new Chat("Bob", "Hi, its bob", "bob", "bob"));
-        chatAdapter = new ChatAdapter(chatList);
+        chatAdapter = new ChatAdapter(chatList, chat -> {
+            Intent intent = new Intent(GeneralActivity.this, CompanionChat.class);
+            intent.putExtra("USER_ID", chat.getUid());
+            startActivity(intent);
+        });
         recyclerViewChats.setAdapter(chatAdapter);
 
-        // Set up RecyclerView for FindUsers
+
+        recyclerViewFindUsers = binding.listViewGen;
         findUserList = new ArrayList<>();
-        findUserAdapter = new FindUserAdapter(findUserList, new FindUserAdapter.OnUserClickListener() {
-            @Override
-            public void onUserClick(FindUser user) {
-                Intent intent = new Intent(GeneralActivity.this, CompanionChat.class);
-                intent.putExtra("USER_ID", user.getUid());
-                startActivity(intent);
-            }
+        findUserAdapter = new FindUserAdapter(findUserList, user -> {
+            Intent intent = new Intent(GeneralActivity.this, CompanionChat.class);
+            intent.putExtra("USER_ID", user.getUid());
+            startActivity(intent);
         });
         recyclerViewFindUsers.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewFindUsers.setAdapter(findUserAdapter);
-        recyclerViewFindUsers.setVisibility(View.GONE); // Hide initially
+        recyclerViewFindUsers.setVisibility(View.GONE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        fetchChatsFromFirestore();
+    }
+
+    private void fetchChatsFromFirestore() {
+        String currentUserId = mAuth.getCurrentUser().getUid();
+        firestore.collection("chats")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    chatList.clear();
+                    Set<String> addedUserIds = new HashSet<>();
+
+                    for (DocumentSnapshot chatDoc : queryDocumentSnapshots) {
+                        String firstUserId = chatDoc.getString("firstUserId");
+                        String secondUserId = chatDoc.getString("secondUserId");
+
+                        if (!currentUserId.equals(firstUserId) && !currentUserId.equals(secondUserId)) {
+                            continue;
+                        }
+
+                        String otherUserId = currentUserId.equals(firstUserId) ? secondUserId : firstUserId;
+
+                        if (addedUserIds.contains(otherUserId)) {
+                            continue;
+                        }
+                        addedUserIds.add(otherUserId);
+
+                        firestore.collection("users")
+                                .document(otherUserId)
+                                .get()
+                                .addOnSuccessListener(userDoc -> {
+                                    if (userDoc.exists()) {
+                                        String name = userDoc.getString("username");
+                                        String pfp = userDoc.getString("pfp");
+
+                                        chatDoc.getReference()
+                                                .collection("messages")
+                                                .orderBy("timestamp", Query.Direction.DESCENDING)
+                                                .limit(1)
+                                                .get()
+                                                .addOnSuccessListener(messagesSnapshot -> {
+                                                    String lastMessage = "";
+                                                    if (!messagesSnapshot.isEmpty()) {
+                                                        DocumentSnapshot lastMessageDoc = messagesSnapshot.getDocuments().get(0);
+                                                        lastMessage = lastMessageDoc.getString("text");
+                                                    }
+
+                                                    Chat chat = new Chat(otherUserId, pfp, name, lastMessage);
+                                                    chatList.add(chat);
+                                                    chatAdapter.notifyDataSetChanged();
+                                                })
+                                                .addOnFailureListener(e ->
+                                                        Log.e("GeneralActivity", "Error getting last message: ", e)
+                                                );
+                                    }
+                                })
+                                .addOnFailureListener(e ->
+                                        Log.e("GeneralActivity", "Error getting user info: ", e)
+                                );
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.e("GeneralActivity", "Error getting chats: ", e)
+                );
     }
 
     @Override
@@ -105,20 +172,14 @@ public class GeneralActivity extends AppCompatActivity {
         SearchView searchView = (SearchView) searchItem.getActionView();
         searchView.setQueryHint("Search...");
 
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-            @Override
-            public boolean onClose() {
-                recyclerViewFindUsers.setVisibility(View.GONE); // Hide results when closed
-                return false;
-            }
+        searchView.setOnCloseListener(() -> {
+            recyclerViewFindUsers.setVisibility(View.GONE);
+            return false;
         });
 
-        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    recyclerViewFindUsers.setVisibility(View.GONE); // Hide results if focus lost
-                }
+        searchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                recyclerViewFindUsers.setVisibility(View.GONE);
             }
         });
 
@@ -146,9 +207,9 @@ public class GeneralActivity extends AppCompatActivity {
 
     private void searchUsers(String query) {
         firestore.collection("users")
-                .orderBy("username") // Order results by username to allow efficient querying
+                .orderBy("username")
                 .startAt(query)
-                .endAt(query + "\uf8ff") // To perform case-insensitive search
+                .endAt(query + "\uf8ff")
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -157,9 +218,8 @@ public class GeneralActivity extends AppCompatActivity {
                             for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                                 FindUser user = document.toObject(FindUser.class);
                                 if (user != null) {
-                                    Log.d("TAG", "searchUsers: " + user.username + " / " + user.getUsername() + " / " + document.getId());
                                     user.setUid(document.getId());
-                                    findUserList.add(user); // Add user to the list
+                                    findUserList.add(user);
                                 }
                             }
                             findUserAdapter.notifyDataSetChanged();

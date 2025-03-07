@@ -13,9 +13,17 @@ import java.util.List;
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder> {
 
     private final List<Chat> chatList;
+    private final OnChatClickListener onChatClickListener;
 
-    public ChatAdapter(List<Chat> chatList) {
+    // Define an interface for handling clicks
+    public interface OnChatClickListener {
+        void onChatClick(Chat chat);
+    }
+
+    // Constructor receives both the data and the click listener
+    public ChatAdapter(List<Chat> chatList, OnChatClickListener onChatClickListener) {
         this.chatList = chatList;
+        this.onChatClickListener = onChatClickListener;
     }
 
     @NonNull
@@ -31,6 +39,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         Chat chat = chatList.get(position);
         holder.textViewName.setText(chat.getName());
         holder.textViewLastMessage.setText(chat.getLastMessage());
+
+        // Set a click listener on the entire itemView
+        holder.itemView.setOnClickListener(v -> {
+            if (onChatClickListener != null) {
+                onChatClickListener.onChatClick(chat);
+            }
+        });
     }
 
     @Override

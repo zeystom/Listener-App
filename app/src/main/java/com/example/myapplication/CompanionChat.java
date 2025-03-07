@@ -1,27 +1,21 @@
 package com.example.myapplication;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.myapplication.databinding.ActivityCompanionChatBinding; // Import the generated binding class
+import com.example.myapplication.databinding.ActivityCompanionChatBinding;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,127 +26,130 @@ import java.util.Map;
 
 public class CompanionChat extends AppCompatActivity {
 
-    // Declare a binding object
-    private ActivityCompanionChatBinding binding;
-    FirebaseAuth mAuth;
-    FirebaseFirestore db;
-    String firstUserId;
-    String secondUserId;
-    String chatId;
+    private static final String TAG = "CompanionChat";
+    private static final String FIELD_CHAT_IDS = "chatIds";
+    private static final String FIELD_USERNAME = "username";
+    private static final String FIELD_FIRST_USER_ID = "firstUserId";
+    private static final String FIELD_SECOND_USER_ID = "secondUserId";
 
-    @SuppressLint("ClickableViewAccessibility")
+    private ActivityCompanionChatBinding binding;
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+    private String firstUserId;
+    private String secondUserId;
+    private String chatId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
 
-        // Инициализация ViewBinding
         binding = ActivityCompanionChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        Intent intent = getIntent();
 
-        binding.companionImage.setImageResource(R.drawable.logout);
-        String data = intent.getStringExtra("USER_ID");
-
+        secondUserId = getIntent().getStringExtra("USER_ID");
         firstUserId = mAuth.getUid();
-        secondUserId = data;
 
-        // Получаем имя собеседника
-        db.collection("users").document(secondUserId).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String name = documentSnapshot.getString("username");
-                        binding.companionName.setText(name);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.d("FirestoreError", "Error getting username", e);
-                });
+        if (firstUserId == null || secondUserId == null) {
+            Log.e(TAG, "User IDs are not available.");
+            finish();
+            return;
+        }
 
-        // Формирование chatId на основе сортировки id пользователей
+        loadCompanionName();
+
         List<String> participants = Arrays.asList(firstUserId, secondUserId);
         Collections.sort(participants);
         chatId = participants.get(0) + "_" + participants.get(1);
-        DocumentReference chatRef = db.collection("chats").document(chatId);
 
-        // Проверка существования чата (опционально)
-        chatRef.get().addOnSuccessListener(documentSnapshot -> {
-            if (!documentSnapshot.exists()) {
-                // Можно создать чат, если он не существует
-                Map<String, Object> chatData = new HashMap<>();
-                chatData.put("firstuserid", firstUserId);
-                chatData.put("seconduserid", secondUserId);
-                chatRef.set(chatData);
+        ensureChatDocument();
+        setupChatRecyclerView();
+
+        binding.sendButton.setOnClickListener(v -> {
+            String messageText = binding.inputField.getText().toString().trim();
+            if (!messageText.isEmpty()) {
+                sendMessage(messageText);
+                binding.inputField.setText("");
             }
         });
+    }
 
-        // Инициализация RecyclerView и адаптера
+    private void loadCompanionName() {
+        db.collection("users").document(secondUserId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String name = documentSnapshot.getString(FIELD_USERNAME);
+                        binding.companionName.setText(name != null ? name : "Unknown");
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Error fetching companion name", e));
+    }
+
+    private void ensureChatDocument() {
+        DocumentReference chatRef = db.collection("chats").document(chatId);
+        chatRef.get().addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        Map<String, Object> chatData = new HashMap<>();
+                        chatData.put(FIELD_FIRST_USER_ID, firstUserId);
+                        chatData.put(FIELD_SECOND_USER_ID, secondUserId);
+                        chatRef.set(chatData)
+                                .addOnSuccessListener(aVoid -> {
+                                    addChatIdToUser(firstUserId);
+                                    addChatIdToUser(secondUserId);
+                                })
+                                .addOnFailureListener(e -> Log.e("TAG", "Error creating chat document", e));
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Error checking chat document", e));
+    }
+
+    private void addChatIdToUser(String userId) {
+        DocumentReference userRef = db.collection("users").document(userId);
+        userRef.update(FIELD_CHAT_IDS, FieldValue.arrayUnion(chatId))
+                .addOnFailureListener(e -> Log.e(TAG, "Error updating chatIds for user: " + userId, e));
+    }
+
+    private void setupChatRecyclerView() {
         RecyclerView chatRecyclerView = binding.chatRecyclerView;
         List<Message> messageList = new ArrayList<>();
         MessageAdapter chatAdapter = new MessageAdapter(firstUserId, messageList);
         chatRecyclerView.setAdapter(chatAdapter);
         chatRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Слушатель изменений для обновления списка сообщений
-        chatRef.collection("messages")
-                .orderBy("timestamp")
+        db.collection("chats").document(chatId)
+                .collection("messages")
+                .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((querySnapshot, e) -> {
                     if (e != null) {
-                        Log.w("Firestore", "Listen failed.", e);
+                        Log.w(TAG, "Listen failed.", e);
                         return;
                     }
                     if (querySnapshot != null) {
                         List<Message> messages = new ArrayList<>();
-                        for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        querySnapshot.getDocuments().forEach(doc -> {
                             Message msg = doc.toObject(Message.class);
-                            messages.add(msg);
-                        }
+                            if (msg != null) {
+                                messages.add(msg);
+                            }
+                        });
                         chatAdapter.setMessages(messages);
-                        if (!messages.isEmpty() && chatAdapter.getItemCount() > 0) {
-                            chatRecyclerView.post(() -> {
-                                int targetPos = chatAdapter.getItemCount() - 1;
-                                if (targetPos >= 0) {
-                                    chatRecyclerView.smoothScrollToPosition(targetPos);
-                                }
-                            });
-                        }                }
+                        // Smooth scroll to the latest message
+                        if (!messages.isEmpty()) {
+                            chatRecyclerView.post(() -> chatRecyclerView.smoothScrollToPosition(chatAdapter.getItemCount() - 1));
+                        }
+                    }
                 });
-
-        // Обработчик нажатия кнопки отправки сообщения
-        binding.sendButton.setOnTouchListener((v, event) -> {
-            String messageText = binding.inputField.getText().toString().trim();
-            if (!messageText.isEmpty()) {
-                sendMessage(chatId, firstUserId, messageText);
-                binding.inputField.setText(""); // Очистка поля ввода
-            }
-            return false;
-        });
     }
-    private void sendMessage(String chatId, String senderId, String text) {
-        // 1) Build your chatRef
-        DocumentReference chatRef = FirebaseFirestore.getInstance()
-                .collection("chats")
-                .document(chatId);
 
-        // 2) Check if it exists
-        chatRef.get().addOnSuccessListener(documentSnapshot -> {
-            if (!documentSnapshot.exists()) {
-                // 3) Create the chat doc if it doesn’t exist
-                Map<String, Object> chatData = new HashMap<>();
-                chatData.put("firstuserid", firstUserId);
-                chatData.put("seconduserid", secondUserId);
+    private void sendMessage(String text) {
+        DocumentReference chatRef = db.collection("chats").document(chatId);
+        // Directly add the message to the messages subcollection
+        addMessageToSubcollection(chatRef, firstUserId, text);
+    }
 
-                chatRef.set(chatData).addOnSuccessListener(unused -> {
-                    // 4) Now that the chat doc exists, add the message
-                    addMessageToSubcollection(chatRef, senderId, text);
-                });
-            } else {
-                // 5) If the doc already exists, just add the new message
-                addMessageToSubcollection(chatRef, senderId, text);
-            }
-        });
-    } private void addMessageToSubcollection(DocumentReference chatRef, String senderId, String text) {
+    private void addMessageToSubcollection(DocumentReference chatRef, String senderId, String text) {
         CollectionReference messagesRef = chatRef.collection("messages");
 
         Map<String, Object> messageData = new HashMap<>();
@@ -161,11 +158,10 @@ public class CompanionChat extends AppCompatActivity {
         messageData.put("timestamp", FieldValue.serverTimestamp());
 
         messagesRef.add(messageData)
-                .addOnSuccessListener(docRef -> {
-                    // Message added successfully
-                })
+                .addOnSuccessListener(documentReference -> Log.d(TAG, "Message sent successfully"))
                 .addOnFailureListener(e -> {
-                    // Handle error
+                    Log.e(TAG, "Error sending message", e);
+                    Toast.makeText(this, "Failed to send message", Toast.LENGTH_SHORT).show();
                 });
     }
 }

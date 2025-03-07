@@ -1,11 +1,16 @@
 package com.example.myapplication;
 
+import android.content.Context;
+import android.content.res.Configuration;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
@@ -54,14 +59,26 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
 
         public void bind(Message message, String currentUserId) {
             messageText.setText(message.getText());
+            Context context = messageText.getContext();
 
-            // Изменяем оформление в зависимости от отправителя
+            boolean isDarkMode = (context.getResources().getConfiguration().uiMode
+                    & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+
+            LinearLayout parentLayout = (LinearLayout) messageText.getParent();
             if (message.getSenderId().equals(currentUserId)) {
-                // Сообщение от текущего пользователя (выравнивание вправо, другой фон и т.д.)
-//                messageText.setBackgroundResource(R.drawable.bg_message_sent);
+                parentLayout.setGravity(Gravity.END);
+                int bgColor = isDarkMode
+                        ? ContextCompat.getColor(context, R.color.outgoing_dark_green)
+                        : ContextCompat.getColor(context, R.color.outgoing_light_green);
+                messageText.setBackgroundColor(bgColor);
+                messageText.setTextColor(ContextCompat.getColor(context, R.color.textColorOutgoing));
             } else {
-                // Сообщение от собеседника
-//                messageText.setBackgroundResource(R.drawable.bg_message_received);
+                parentLayout.setGravity(Gravity.START);
+                int bgColor = isDarkMode
+                        ? ContextCompat.getColor(context, R.color.incoming_dark_green)
+                        : ContextCompat.getColor(context, R.color.incoming_light_green);
+                messageText.setBackgroundColor(bgColor);
+                messageText.setTextColor(ContextCompat.getColor(context, R.color.textColorIncoming));
             }
         }
     }

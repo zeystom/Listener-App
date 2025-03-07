@@ -2,4 +2,10 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="outgoing_light_green">#A5D6A7</color>
+    <color name="outgoing_dark_green">#388E3C</color>
+    <color name="incoming_light_green">#C8E6C9</color>
+    <color name="incoming_dark_green">#2E7D32</color>
+    <color name="textColorOutgoing">#FFFFFF</color>
+    <color name="textColorIncoming">#000000</color>
 </resources>

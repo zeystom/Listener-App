@@ -2,7 +2,8 @@
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    >
 
     <!-- Top: Companion header with profile picture and name -->
     <LinearLayout
@@ -11,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
-        android:background="#CCCCCC">
+        android:background="?attr/colorSurface">
 
         <ImageView
             android:id="@+id/companionImage"
@@ -27,18 +28,34 @@
             android:layout_height="wrap_content"
             android:text="Companion Name"
             android:textSize="18sp"
-            android:textColor="#000000"
+            android:textColor="?attr/colorOnSurface"
             android:gravity="center_vertical" />
     </LinearLayout>
 
-    <!-- Middle: Chat messages (use a RecyclerView or ListView here) -->
+    <!-- Divider below header using green (primary) color -->
+    <View
+        android:id="@+id/headerDivider"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_below="@id/companionHeader"
+        android:background="?attr/colorPrimary" />
+
+    <!-- Middle: Chat messages -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/chatRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_below="@id/companionHeader"
+        android:layout_below="@id/headerDivider"
         android:layout_above="@id/inputLayout"
         android:padding="8dp" />
+
+    <!-- Divider above input using green (primary) color -->
+    <View
+        android:id="@+id/inputDivider"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_above="@id/inputLayout"
+        android:background="?attr/colorPrimary" />
 
     <!-- Bottom: Input field for sending messages -->
     <LinearLayout
@@ -48,21 +65,23 @@
         android:layout_alignParentBottom="true"
         android:orientation="horizontal"
         android:padding="8dp"
-        android:background="#EEEEEE">
+        android:background="?attr/colorSurface">
 
         <EditText
             android:id="@+id/inputField"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Type a message" />
+            android:hint="Type a message"
+            android:textColor="?attr/colorOnSurface" />
 
         <ImageButton
             android:id="@+id/sendButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/magnifying_glass"
-            android:contentDescription="Send Message" />
+            android:layout_width="49dp"
+            android:layout_height="50dp"
+            android:background="?attr/colorSurface"
+            android:contentDescription="Send Message"
+            android:src="@drawable/send" />
     </LinearLayout>
 
 </RelativeLayout>
